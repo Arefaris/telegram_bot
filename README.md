@@ -35,10 +35,11 @@ npm install
 
 3. Create a .env file in the root directory
 
+```
 API_KEY_TELEGRAM=your_telegram_bot_token
 API_KEY_OPEN_AI=your_openai_api_key
 PROMPT=You are a helpful assistant. Answer briefly and clearly.
-
+```
 
 PROMPT is used as the system message for OpenAI and defines the assistant's behavior.
 
