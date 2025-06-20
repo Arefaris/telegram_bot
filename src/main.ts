@@ -12,18 +12,27 @@ dotenv.config();
 //api keys -> .env
 const apiKeyTelegram: string | undefined = process.env.API_KEY_TELEGRAM;
 const apiKeyOpenAi: string | undefined = process.env.API_KEY_OPEN_AI;
-
+const USERS: string[] | undefined = process.env.USERS?.split(",")
 
 //prompt for open ai -> .env
 const prompt: string | undefined = process.env.PROMPT
 
 if (!apiKeyTelegram) {
-  throw new Error("API_KEY for telegram is not defined");
+  throw new Error("Please provide api for telegram bot in .env file");
+}
+
+if (!apiKeyOpenAi) {
+  throw new Error("Please provide prompt in .env file");
+}
+
+if (!USERS) {
+  throw new Error("No users specifed in .env file");
 }
 
 if (!prompt) {
-  throw new Error("API_KEY for openAI is not defined");
+  throw new Error("Please provide prompt in .env file");
 }
+
 
 const openai = new OpenAI({
     apiKey: apiKeyOpenAi
@@ -80,44 +89,44 @@ interface media_from_twitter {
 let link: twitter_link
 
 bot.on(message('text'), async (ctx) => {
-  
   const last_message = ctx.message
-  
-  let aiReply = await textAnswer(last_message.text, history.join(""))
+  const username = last_message.from.username
+
   
   //cleaning message history if its too long
   if (history.length === 5){
          history = []    
    }
-  
-  if (aiReply === null) {
-        ctx.reply("couldnt reach open ai")
-  }
 
-  //checking if youser requesting to call functions like get twitter media
-  else if (aiReply.choices[0].message.tool_calls) {
-        const tools = aiReply.choices[0].message.tool_calls
-        arg = aiReply.choices[0].message.tool_calls[0].function.arguments
+  if (username && USERS && USERS.includes(username)){
+     let aiReply = await textAnswer(last_message.text, history.join(""))
 
-        //checking witch function to call and calling them
+     if (aiReply === null) ctx.reply("couldnt reach open ai")
+
+     const tools = aiReply.choices[0].message.tool_calls
+
+     // checking if youser requesting to call functions like get twitter media 
+     if (tools) {
+        arg = tools[0].function.arguments
         let func = await getFunctionCall(tools, arg)
 
-        //replying based on return type
+        // replying based on return type
         if (func === undefined){
             ctx.reply("Something went wrong during a function call, please try again later")
         }
         else if (func.media[0].url){
             ctx.replyWithVideo(func.media[0].url)  
         }
+      }
 
-    //if we are not calling functions, then its a simple answer
-    } else if (aiReply.choices[0].message.content){
-        //pushing messages to history to keep context
-        history.push(aiReply.choices[0].message.content)
-        ctx.reply(aiReply.choices[0].message.content)
+      // sending message from ai if exist
+      const aiMessage = aiReply.choices[0].message.content
+      if (aiMessage) ctx.reply(aiMessage)
+
+    }else {
+      ctx.reply("Not authorized")
     }
-    }
-)
+})
 
 const embdedFromLink = async(mgsFromUser:string)=> {
     try{

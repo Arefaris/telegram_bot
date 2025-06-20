@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const telegraf_1 = require("telegraf");
 const filters_1 = require("telegraf/filters");
@@ -21,6 +22,8 @@ dotenv_1.default.config();
 //api keys -> .env
 const apiKeyTelegram = process.env.API_KEY_TELEGRAM;
 const apiKeyOpenAi = process.env.API_KEY_OPEN_AI;
+const USERS = (_a = process.env.USERS) === null || _a === void 0 ? void 0 : _a.split(",");
+let userPass = "";
 //prompt for open ai -> .env
 const prompt = process.env.PROMPT;
 if (!apiKeyTelegram) {
@@ -65,33 +68,35 @@ let arg;
 let link;
 bot.on((0, filters_1.message)('text'), (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const last_message = ctx.message;
-    let aiReply = yield textAnswer(last_message.text, history.join(""));
+    const username = last_message.from.username;
     //cleaning message history if its too long
     if (history.length === 5) {
         history = [];
     }
-    if (aiReply === null) {
-        ctx.reply("couldnt reach open ai");
-    }
-    //checking if youser requesting to call functions like get twitter media
-    else if (aiReply.choices[0].message.tool_calls) {
+    if (username && USERS && USERS.includes(username)) {
+        let aiReply = yield textAnswer(last_message.text, history.join(""));
+        if (aiReply === null)
+            ctx.reply("couldnt reach open ai");
         const tools = aiReply.choices[0].message.tool_calls;
-        arg = aiReply.choices[0].message.tool_calls[0].function.arguments;
-        //checking witch function to call and calling them
-        let func = yield getFunctionCall(tools, arg);
-        //replying based on return type
-        if (func === undefined) {
-            ctx.reply("Something went wrong during a function call, please try again later");
+        // checking if youser requesting to call functions like get twitter media 
+        if (tools) {
+            arg = tools[0].function.arguments;
+            let func = yield getFunctionCall(tools, arg);
+            // replying based on return type
+            if (func === undefined) {
+                ctx.reply("Something went wrong during a function call, please try again later");
+            }
+            else if (func.media[0].url) {
+                ctx.replyWithVideo(func.media[0].url);
+            }
         }
-        else if (func.media[0].url) {
-            ctx.replyWithVideo(func.media[0].url);
-        }
-        //if we are not calling functions, then its a simple answer
+        // sending message from ai if exist
+        const aiMessage = aiReply.choices[0].message.content;
+        if (aiMessage)
+            ctx.reply(aiMessage);
     }
-    else if (aiReply.choices[0].message.content) {
-        //pushing messages to history to keep context
-        history.push(aiReply.choices[0].message.content);
-        ctx.reply(aiReply.choices[0].message.content);
+    else {
+        ctx.reply("Not authorized");
     }
 }));
 const embdedFromLink = (mgsFromUser) => __awaiter(void 0, void 0, void 0, function* () {

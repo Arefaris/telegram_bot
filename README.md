@@ -39,10 +39,11 @@ npm install
 API_KEY_TELEGRAM=your_telegram_bot_token
 API_KEY_OPEN_AI=your_openai_api_key
 PROMPT=You are a helpful assistant. Answer briefly and clearly.
+USERS=telegram_usernames,separeted,by,comma
 ```
 
 PROMPT is used as the system message for OpenAI and defines the assistant's behavior.
-
+USERS is used to specify who can use your bot, put your username in there
 4. Start the bot
 
 node index.js
