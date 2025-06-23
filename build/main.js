@@ -23,14 +23,23 @@ dotenv_1.default.config();
 const apiKeyTelegram = process.env.API_KEY_TELEGRAM;
 const apiKeyOpenAi = process.env.API_KEY_OPEN_AI;
 const USERS = (_a = process.env.USERS) === null || _a === void 0 ? void 0 : _a.split(",");
-let userPass = "";
+const MODEL = process.env.MODEL;
 //prompt for open ai -> .env
 const prompt = process.env.PROMPT;
 if (!apiKeyTelegram) {
-    throw new Error("API_KEY for telegram is not defined");
+    throw new Error("Please provide api for telegram bot in .env file");
+}
+if (!apiKeyOpenAi) {
+    throw new Error("Please provide prompt in .env file");
+}
+if (!USERS) {
+    throw new Error("No users specifed in .env file");
 }
 if (!prompt) {
-    throw new Error("API_KEY for openAI is not defined");
+    throw new Error("Please provide prompt in .env file");
+}
+if (!MODEL) {
+    throw new Error("Please provide model name in .env file");
 }
 const openai = new openai_1.default({
     apiKey: apiKeyOpenAi
@@ -93,7 +102,7 @@ bot.on((0, filters_1.message)('text'), (ctx) => __awaiter(void 0, void 0, void 0
         // sending message from ai if exist
         const aiMessage = aiReply.choices[0].message.content;
         if (aiMessage)
-            ctx.reply(aiMessage);
+            ctx.replyWithMarkdownV2(markDownRefactor(aiMessage));
     }
     else {
         ctx.reply("Not authorized");
@@ -137,12 +146,31 @@ const textAnswer = (message, history) => __awaiter(void 0, void 0, void 0, funct
         content: message
     });
     const response = yield openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: MODEL,
         messages: conversationHistory,
         tools,
     });
     return response;
 });
+const markDownRefactor = (text) => {
+    text = text.replace(/\_/g, '\\_')
+        .replace(/\[/g, '\\[')
+        .replace(/\]/g, '\\]')
+        .replace(/\(/g, '\\(')
+        .replace(/\)/g, '\\)')
+        .replace(/\~/g, '\\~')
+        .replace(/\>/g, '\\>')
+        .replace(/\#/g, '\\#')
+        .replace(/\+/g, '\\+')
+        .replace(/\-/g, '\\-')
+        .replace(/\=/g, '\\=')
+        .replace(/\|/g, '\\|')
+        .replace(/\{/g, '\\{')
+        .replace(/\}/g, '\\}')
+        .replace(/\./g, '\\.')
+        .replace(/\!/g, '\\!');
+    return text;
+};
 bot.launch();
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));

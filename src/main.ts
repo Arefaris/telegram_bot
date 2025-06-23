@@ -13,6 +13,7 @@ dotenv.config();
 const apiKeyTelegram: string | undefined = process.env.API_KEY_TELEGRAM;
 const apiKeyOpenAi: string | undefined = process.env.API_KEY_OPEN_AI;
 const USERS: string[] | undefined = process.env.USERS?.split(",")
+const MODEL: string | undefined = process.env.MODEL
 
 //prompt for open ai -> .env
 const prompt: string | undefined = process.env.PROMPT
@@ -31,6 +32,10 @@ if (!USERS) {
 
 if (!prompt) {
   throw new Error("Please provide prompt in .env file");
+}
+
+if (!MODEL) {
+  throw new Error("Please provide model name in .env file");
 }
 
 
@@ -121,7 +126,7 @@ bot.on(message('text'), async (ctx) => {
 
       // sending message from ai if exist
       const aiMessage = aiReply.choices[0].message.content
-      if (aiMessage) ctx.reply(aiMessage)
+      if (aiMessage) ctx.replyWithMarkdownV2(markDownRefactor(aiMessage))
 
     }else {
       ctx.reply("Not authorized")
@@ -172,7 +177,7 @@ const textAnswer = async(message: string, history: string)=>{
       });
 
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: MODEL,
         messages: conversationHistory,
         tools,
       });
@@ -180,6 +185,26 @@ const textAnswer = async(message: string, history: string)=>{
         return response
       }
 
+const markDownRefactor =(text: string)=> {
+    text = text.replace(/\_/g, '\\_')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/\~/g, '\\~')
+    .replace(/\>/g, '\\>')
+    .replace(/\#/g, '\\#')
+    .replace(/\+/g, '\\+')
+    .replace(/\-/g, '\\-')
+    .replace(/\=/g, '\\=')
+    .replace(/\|/g, '\\|')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+    .replace(/\./g, '\\.')
+    .replace(/\!/g, '\\!')
+
+    return text
+}
 
 
 bot.launch()
